@@ -44,7 +44,6 @@ vif_values
 ```
 
 # Splitting data into training and validation
-And also running a model
 
 ```{r}
 # Splitting the data into training and validation sets
