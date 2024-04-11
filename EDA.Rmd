@@ -102,6 +102,14 @@ Less significant variables:
 - Convex Area
 - EquivDiameter (?)
 
+More significant variables:
+- Shape factor 1
+- Shape factor 2
+- Shape factor 3
+- Shape factor 4
+
+Everything else TBD
+
 ```{r}
 # Predict using the validation set
 predictions <- predict(lasso_model, s = "lambda.min", newx = x_validation)
