@@ -53,8 +53,13 @@ corrplot.mixed(cor(train),
 # Check for multicollinearity
 library(car)
 vif_values <- vif(full_model)
-vif_values
+rounded_vif <- round(vif_values, 4)
+rounded_vif
 ```
+
+Area, Perimeter, MajorAxisLength, MinorAxisLength, AspectRation, Eccentricity, ConvexArea, EquivDiameter, Compactness, ShapeFactor1, ShapeFactor2, and ShapeFactor3 all have very high VIF values, indicating extremely high multicollinearity.
+
+Extent and ShapeFactor4 have VIF values around 1 and 220 respectively. It seems that Extent has little to no collinearity with other variables, while ShapeFactor4 is moderately correlated with others.
 
 # Splitting data into training and validation
 
