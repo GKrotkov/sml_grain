@@ -1,0 +1,11 @@
+---
+title: "EDA"
+author: "Elizabeth Ho"
+output: pdf_document
+---
+
+```{r}
+# Load in the data
+train <- read.csv("data/train_data.csv")
+```
+
