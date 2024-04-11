@@ -4,6 +4,7 @@ author: "Elizabeth Ho"
 output: pdf_document
 ---
 
+# Load in data, basic exploration of data
 ```{r}
 # Load in the data
 train <- read.csv("data/train_data.csv")
@@ -53,7 +54,19 @@ train_set <- train[index, ]
 validation_set <- train[-index, ]
 ```
 
+# LASSO
+Do we need to standardize features?
 ```{r}
+# NOTE: I did NOT standardize features; here is the code if we wanted to do so
+# Standardize the features
+standardized_train <- scale(train)
+standardized_train <- as.data.frame(standardized_train)
+
+# Fit the Lasso model on the standardized data
+lasso_model_standardized <- cv.glmnet(as.matrix(standardized_train), train$Y, alpha = 1)
+```
+
+```{r, warning=FALSE, message=FALSE}
 # Use Lasso?
 library(glmnet)
 x_train <- model.matrix(Y ~ . - 1, data = train_set) # -1 to exclude intercept
@@ -64,5 +77,50 @@ plot(lasso_model)
 # Predictions for the validation set
 x_validation <- model.matrix(Y ~ . - 1, data = validation_set)
 predictions <- predict(lasso_model, s = "lambda.min", newx = x_validation)
+```
+
+```{r}
+# Extract coefficients of the model at lambda.min
+lasso_coefficients <- coef(lasso_model, s = "lambda.min")
+
+# Non-zero coefficients
+print(round(lasso_coefficients[lasso_coefficients != 0], 6))
+```
+We see that the less significant variables are:
+- 
+
+```{r}
+# Predict using the validation set
+predictions <- predict(lasso_model, s = "lambda.min", newx = x_validation)
+
+# Calculate MSE on the validation set
+mse <- mean((validation_set$Y - predictions)^2)
+mse
+```
+
+# Ridge
+
+```{r}
+ridge_model <- cv.glmnet(x_train, y_train, alpha = 0)
+
+# CV curve
+plot(ridge_model)
+```
+
+```{r}
+# Predictions for the validation set
+ridge_predictions <- predict(ridge_model, s = "lambda.min", newx = x_validation)
+
+# Extract coefficients of the Ridge model at lambda.min
+ridge_coefficients <- coef(ridge_model, s = "lambda.min")
+
+# Non-zero coefficients
+print(round(ridge_coefficients, 6))
+```
+
+```{r}
+# MSE for the validation set 
+ridge_mse <- mean((validation_set$Y - ridge_predictions)^2)
+ridge_mse
 ```
 
