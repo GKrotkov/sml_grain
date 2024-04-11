@@ -42,3 +42,28 @@ library(car)
 vif_values <- vif(full_model)
 vif_values
 ```
+
+# Splitting data into training and validation
+And also running a model
+
+```{r}
+# Splitting the data into training and validation sets
+set.seed(1234)
+index <- sample(1:nrow(train), round(0.8 * nrow(train)))
+train_set <- train[index, ]
+validation_set <- train[-index, ]
+```
+
+```{r}
+# Use Lasso?
+library(glmnet)
+x_train <- model.matrix(Y ~ . - 1, data = train_set) # -1 to exclude intercept
+y_train <- train_set$Y
+lasso_model <- cv.glmnet(x_train, y_train, alpha = 1)
+plot(lasso_model)
+
+# Predictions for the validation set
+x_validation <- model.matrix(Y ~ . - 1, data = validation_set)
+predictions <- predict(lasso_model, s = "lambda.min", newx = x_validation)
+```
+
