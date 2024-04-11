@@ -86,14 +86,27 @@ lasso_coefficients <- coef(lasso_model, s = "lambda.min")
 # Non-zero coefficients
 print(round(lasso_coefficients[lasso_coefficients != 0], 6))
 ```
-We see that the less significant variables are:
-- 
+
+## Coefficients with variable names
+```{r}
+lasso_coefficients <- coef(lasso_model, s = "lambda.min")
+variable_names <- colnames(x_train)
+coef_w_names <- setNames(lasso_coefficients[-1], variable_names)
+print(round(coef_w_names[coef_w_names != 0], 6))
+```
+
+Less significant variables:
+- Area
+- Perimeter
+- Major Axis Length
+- Convex Area
+- EquivDiameter (?)
 
 ```{r}
 # Predict using the validation set
 predictions <- predict(lasso_model, s = "lambda.min", newx = x_validation)
 
-# Calculate MSE on the validation set
+# MSE on the validation set
 mse <- mean((validation_set$Y - predictions)^2)
 mse
 ```
