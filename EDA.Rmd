@@ -19,6 +19,18 @@ summary(full_model)
 correlation_matrix <- cor(train[, -which(names(train) == "Y")])
 correlation_matrix
 ```
+## Observations from correlation matrix:
+
+1. `Area` and `Perimeter`: Correlation coefficient is 0.989 (strong positive correlation).
+2. `Area` and `MajorAxisLength`, `MinorAxisLength`, `ConvexArea`, `EquivDiameter`: All have correlation coefficients above 0.94 with `Area`.
+3. `Perimeter` and `MajorAxisLength`, `MinorAxisLength`, `ConvexArea`, `EquivDiameter`: Similar to `Area`, these variables also show strong positive correlations with `Perimeter`.
+
+Based on observations 1, 2, and 3, we could potentially only look at one of the variables (e.g., Area) since they all seem to be very correlated.
+
+4. `AspectRation` and `Eccentricity`: Correlation coefficient is 0.981.
+5. `Compactness`, `ShapeFactor1`, `ShapeFactor3` and `AspectRation`, `Eccentricity`: These groups have correlation coefficients very close to -1 with each other, indicating strong negative correlations.
+
+Conclusions based on 4 and 5?
 
 ```{r}
 library(corrplot)
