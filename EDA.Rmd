@@ -73,7 +73,7 @@ validation_set <- train[-index, ]
 
 # LASSO
 Do we need to standardize features?
-```{r}
+```{r, eval=FALSE}
 # NOTE: I did NOT standardize features; here is the code if we wanted to do so
 # Standardize the features
 standardized_train <- scale(train)
@@ -162,3 +162,15 @@ ridge_mse <- mean((validation_set$Y - ridge_predictions)^2)
 ridge_mse
 ```
 
+# Conclusions based on EDA
+### 1. Variables to Consider Including
+   - **ShapeFactor1, ShapeFactor2, ShapeFactor3, ShapeFactor4**: These variables showed significant non-zero coefficients in the LASSO regression, so they're likely to be important predictors.
+   - **Extent**: This variable demonstrated a low Variance Inflation Factor (VIF)
+    - This suggests minimal collinearity with other variables.
+   - **EquivDiameter**: This variable has a high VIF and showed a significant effect in the regression models. If multicollinearity concerns are addressed, it might be useful to include (?)
+   - **Solidity, roundness, Compactness**: These showed significant coefficients in the predictive models.
+
+### 2. Variables to Potentially Exclude
+   - **Area, Perimeter, MajorAxisLength, MinorAxisLength**: These variables exhibit extremely high multicollinearity (very high VIF values) and were not consistently significant across the models.
+    - Indications: Including one of these variables might be sufficient if needed, since they are highly correlated with each other.
+   - **AspectRation, Eccentricity**: High correlation with each other and other shape descriptors, potentially leading to issues of multicollinearity.
