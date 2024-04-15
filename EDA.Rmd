@@ -14,6 +14,64 @@ train <- read.csv("data/train_data.csv")
 full_model <- lm(Y ~ ., data = train)
 summary(full_model)
 ```
+# Plots
+(Adding in after observing multicollinearity)
+
+## Area vs. perimeter scatterplot
+```{r, warning=FALSE}
+library(ggplot2)
+
+ggplot(train, aes(x = Area, y = Perimeter)) +
+  geom_point(alpha = 0.6, col = "cadetblue") +
+  theme_minimal() +
+  labs(title = "Perimeter vs Area",
+       x = "Area",
+       y = "Perimeter")
+```
+Looks very linearly related. But quick linear regression to check:
+```{r}
+perim_area <- lm(Perimeter ~ Area, data = train)
+summary(perim_area)
+```
+Very highly correlated.
+
+## MajorAxisLength vs. MinorAxisLength scatterplot
+```{r}
+ggplot(train, aes(x = MinorAxisLength, y = MajorAxisLength)) +
+  geom_point(alpha = 0.6, col = "cadetblue") +
+  theme_minimal() +
+  labs(title = "MajorAxisLength vs. MinorAxisLength",
+       x = "MinorAxisLength",
+       y = "MajorAxisLength")
+```
+### Quick analysis of MajorAxisLength vs. MinorAxisLength Linear Model
+To assess strength of correlation
+```{r}
+major_minor <- lm(MajorAxisLength ~ MinorAxisLength, data = train)
+summary(major_minor)
+```
+Seems pretty strong
+
+## PCA Biplot
+```{r}
+library(ggplot2)
+library(GGally)
+
+# Run PCA on the data
+pca_result <- prcomp(train[,sapply(train, is.numeric)], scale. = TRUE)
+
+# Create biplot
+ggbiplot(pca_result,
+         obs.scale = 1,
+         var.scale = 1,
+         groups = train$Y,
+         ellipse = TRUE,
+         circle = TRUE) +
+  scale_color_discrete(name = '') +
+  theme_minimal() +
+  labs(title = "PCA Biplot with Observations Colored by 'Y'")
+```
+
 
 ```{r}
 correlation_matrix <- cor(train[, -which(names(train) == "Y")])
