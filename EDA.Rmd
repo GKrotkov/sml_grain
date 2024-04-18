@@ -111,7 +111,41 @@ To assess strength of correlation
 major_minor <- lm(MajorAxisLength ~ MinorAxisLength, data = train)
 summary(major_minor)
 ```
-Seems pretty strong
+Seems relatively strong
+
+## Area and MajorAxisLength, MinorAxisLength, ConvexArea, EquivDiameter
+```{r}
+ggplot(train, aes(x = MajorAxisLength, y = Area)) +
+  geom_point(alpha = 0.6, col = "cadetblue") +
+  theme_minimal() +
+  labs(title = "Area vs. MajorAxisLength",
+       x = "MajorAxisLength",
+       y = "Area")
+ggplot(train, aes(x = MinorAxisLength, y = Area)) +
+  geom_point(alpha = 0.6, col = "cadetblue") +
+  theme_minimal() +
+  labs(title = "Area vs. MinorAxisLength",
+       x = "MinorAxisLength",
+       y = "Area")
+ggplot(train, aes(x = ConvexArea, y = Area)) +
+  geom_point(alpha = 0.6, col = "cadetblue") +
+  theme_minimal() +
+  labs(title = "Area vs. ConvexArea",
+       x = "ConvexArea",
+       y = "Area")
+ggplot(train, aes(x = EquivDiameter, y = Area)) +
+  geom_point(alpha = 0.6, col = "cadetblue") +
+  theme_minimal() +
+  labs(title = "Area vs. EquivDiameter",
+       x = "EquivDiameter",
+       y = "Area")
+```
+```{r}
+summary(lm(Area ~ EquivDiameter, data = train))
+```
+Area is super correlated with ConvexArea and EquivDiameter
+
+# Correlation Matrix
 
 ```{r}
 correlation_matrix <- cor(train[, -which(names(train) == "Y")])
