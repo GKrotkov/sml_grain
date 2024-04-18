@@ -141,6 +141,7 @@ standardized_train <- as.data.frame(standardized_train)
 lasso_model_standardized <- cv.glmnet(as.matrix(standardized_train), train$Y, alpha = 1)
 ```
 
+Proceeding without standardizing:
 ```{r, warning=FALSE, message=FALSE}
 # Use Lasso?
 library(glmnet)
@@ -232,3 +233,13 @@ ridge_mse
    - **Area, Perimeter, MajorAxisLength, MinorAxisLength**: These variables exhibit extremely high multicollinearity (very high VIF values) and were not consistently significant across the models.
     - Indications: Including one of these variables might be sufficient if needed, since they are highly correlated with each other.
    - **AspectRation, Eccentricity**: High correlation with each other and other shape descriptors, potentially leading to issues of multicollinearity.
+   
+# MSE values really small - checking to see if anything's wrong
+```{r}
+predicted_classes <- ifelse(predictions > 0.5, 1, 0) 
+
+library(caret)
+conf_matrix <- confusionMatrix(factor(predicted_classes), factor(validation_set$Y))
+print(conf_matrix)
+```
+
