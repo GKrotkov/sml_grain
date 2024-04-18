@@ -22,6 +22,62 @@ summary(full_model)
 # Visualizing data distributions to understand the characteristics of variables
 (Adding in after observing multicollinearity)
 
+# Single variables
+```{r}
+# Area
+ggplot(train, aes(x = Area)) +
+    geom_histogram(bins = 25)
+# Perimeter
+ggplot(train, aes(x = Perimeter)) +
+    geom_histogram(bins = 25)
+# MajorAxisLength
+ggplot(train, aes(x = MajorAxisLength)) +
+    geom_histogram(bins = 25)
+ggplot(train, aes(x = MinorAxisLength)) +
+    geom_histogram(bins = 25)
+```
+
+```{r}
+ggplot(train, aes(x = AspectRation)) +
+    geom_histogram(bins = 25)
+
+ggplot(train, aes(x = Eccentricity)) +
+    geom_histogram(bins = 25)
+
+ggplot(train, aes(x = ConvexArea)) +
+    geom_histogram(bins = 25)
+
+ggplot(train, aes(x = EquivDiameter)) +
+    geom_histogram(bins = 25)
+```
+
+```{r}
+ggplot(train, aes(x = Extent)) +
+    geom_histogram(bins = 25)
+
+ggplot(train, aes(x = Solidity)) +
+    geom_histogram(bins = 25)
+
+ggplot(train, aes(x = roundness)) +
+    geom_histogram(bins = 25)
+
+ggplot(train, aes(x = Compactness)) +
+    geom_histogram(bins = 25)
+```
+
+```{r}
+ggplot(train, aes(x = ShapeFactor1)) +
+    geom_histogram(bins = 25)
+ggplot(train, aes(x = ShapeFactor2)) +
+    geom_histogram(bins = 25)
+ggplot(train, aes(x = ShapeFactor3)) +
+    geom_histogram(bins = 25)
+ggplot(train, aes(x = ShapeFactor4)) +
+    geom_histogram(bins = 25)
+```
+# Multiple Variables
+Use: barplot, scatterplot.
+
 ## Area vs. perimeter scatterplot
 ```{r, warning=FALSE}
 library(ggplot2)
@@ -109,35 +165,24 @@ corrplot.mixed(cor(train),
                upper = "circle",
                tl.col = "black")
 ```
-## NOTES
-- Only use area, not perimeter, axis length, etc.
-
-```{r}
-# Check for multicollinearity
-library(car)
-vif_values <- vif(full_model)
-rounded_vif <- round(vif_values, 4)
-rounded_vif
-```
-
-Area, Perimeter, MajorAxisLength, MinorAxisLength, AspectRation, Eccentricity, ConvexArea, EquivDiameter, Compactness, ShapeFactor1, ShapeFactor2, and ShapeFactor3 all have very high VIF values, indicating extremely high multicollinearity.
-
-Extent and ShapeFactor4 have VIF values around 1 and 220 respectively. It seems that Extent has little to no collinearity with other variables, while ShapeFactor4 is moderately correlated with others.
 
 # Outliers - Detection and Handling
 ```{r}
-
+library(ggplot2)
+ggplot(train, aes(x = ShapeFactor1)) + 
+  geom_boxplot() +
+    theme_minimal()
+ggplot(train, aes(x = ShapeFactor2)) + 
+  geom_boxplot() +
+    theme_minimal()
+ggplot(train, aes(x = ShapeFactor3)) + 
+  geom_boxplot() +
+    theme_minimal()
+ggplot(train, aes(x = ShapeFactor4)) + 
+  geom_boxplot() +
+    theme_minimal()
 ```
-
-# Missing data
-```{r}
-
-```
-
-# Feature Engineering and Selection:
-Based on your EDA, decide which variables to keep, drop, or transform.
-Create new features that might be useful for your model, based on your understanding of the dataset and the relationships among variables.
-Perform any necessary transformations (e.g., scaling, normalization) that might help your modeling process.
+*NOTE there are no missing data*
 
    
 # MSE values really small - checking to see if anything's wrong

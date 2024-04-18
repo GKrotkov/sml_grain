@@ -1,4 +1,160 @@
 ---
-title: "Model Prediction"
+title: "Feature Engineering and Selection"
 output: pdf_document
 ---
+# Feature Engineering and Selection:
+Based on your EDA, decide which variables to keep, drop, or transform.
+Create new features that might be useful for your model, based on your understanding of the dataset and the relationships among variables.
+Perform any necessary transformations (e.g., scaling, normalization) that might help your modeling process.
+
+## NOTES
+- Only use area, not perimeter, axis length, etc.
+
+```{r}
+# Check for multicollinearity
+library(car)
+vif_values <- vif(full_model)
+rounded_vif <- round(vif_values, 4)
+rounded_vif
+```
+
+Area, Perimeter, MajorAxisLength, MinorAxisLength, AspectRation, Eccentricity, ConvexArea, EquivDiameter, Compactness, ShapeFactor1, ShapeFactor2, and ShapeFactor3 all have very high VIF values, indicating extremely high multicollinearity.
+
+Extent and ShapeFactor4 have VIF values around 1 and 220 respectively. It seems that Extent has little to no collinearity with other variables, while ShapeFactor4 is moderately correlated with others.
+
+# Conclusions based on EDA
+### 1. Variables to Consider Including
+   - **ShapeFactor1, ShapeFactor2, ShapeFactor3, ShapeFactor4**: These variables showed significant non-zero coefficients in the LASSO regression, so they're likely to be important predictors.
+   - **Extent**: This variable demonstrated a low Variance Inflation Factor (VIF)
+    - This suggests minimal collinearity with other variables.
+   - **EquivDiameter**: This variable has a high VIF and showed a significant effect in the regression models. If multicollinearity concerns are addressed, it might be useful to include (?)
+   - **Solidity, roundness, Compactness**: These showed significant coefficients in the predictive models.
+
+### 2. Variables to Potentially Exclude
+   - **Area, Perimeter, MajorAxisLength, MinorAxisLength**: These variables exhibit extremely high multicollinearity (very high VIF values) and were not consistently significant across the models.
+    - Indications: Including one of these variables might be sufficient if needed, since they are highly correlated with each other.
+   - **AspectRation, Eccentricity**: High correlation with each other and other shape descriptors, potentially leading to issues of multicollinearity.
+
+# LAST STEP:
+AFTER selecting which variables we want to include
+
+# Splitting data into training and validation (NO FEATURE SELECTION)
+
+```{r}
+# Splitting the data into training and validation sets
+set.seed(1234)
+index <- sample(1:nrow(train), round(0.8 * nrow(train)))
+train_set <- train[index, ]
+validation_set <- train[-index, ]
+```
+
+# LASSO
+Proceeding without standardizing:
+```{r, warning=FALSE, message=FALSE}
+# Use Lasso?
+library(glmnet)
+x_train <- model.matrix(Y ~ . - 1, data = train_set) # -1 to exclude intercept
+y_train <- train_set$Y
+lasso_model <- cv.glmnet(x_train, y_train, alpha = 1)
+plot(lasso_model)
+
+# Predictions for the validation set
+x_validation <- model.matrix(Y ~ . - 1, data = validation_set)
+predictions <- predict(lasso_model, s = "lambda.min", newx = x_validation)
+```
+
+```{r}
+# Extract coefficients of the model at lambda.min
+lasso_coefficients <- coef(lasso_model, s = "lambda.min")
+
+# Non-zero coefficients
+print(round(lasso_coefficients[lasso_coefficients != 0], 6))
+```
+
+## Coefficients with variable names
+```{r}
+lasso_coefficients <- coef(lasso_model, s = "lambda.min")
+variable_names <- colnames(x_train)
+coef_w_names <- setNames(lasso_coefficients[-1], variable_names)
+print(round(coef_w_names[coef_w_names != 0], 6))
+```
+
+Less significant variables:
+- Area
+- Perimeter
+- Major Axis Length
+- Convex Area
+- EquivDiameter (?)
+
+More significant variables:
+- Shape factor 1
+- Shape factor 2
+- Shape factor 3
+- Shape factor 4
+
+Everything else TBD
+
+```{r}
+# Predict using the validation set
+predictions <- predict(lasso_model, s = "lambda.min", newx = x_validation)
+
+# MSE on the validation set
+mse <- mean((validation_set$Y - predictions)^2)
+mse
+```
+
+# Ridge
+```{r}
+ridge_model <- cv.glmnet(x_train, y_train, alpha = 0)
+
+# CV curve
+plot(ridge_model)
+```
+
+```{r}
+# Predictions for the validation set
+ridge_predictions <- predict(ridge_model, s = "lambda.min", newx = x_validation)
+
+# Extract coefficients of the Ridge model at lambda.min
+ridge_coefficients <- coef(ridge_model, s = "lambda.min")
+
+# Non-zero coefficients
+print(round(ridge_coefficients, 6))
+```
+
+```{r}
+# MSE for the validation set 
+ridge_mse <- mean((validation_set$Y - ridge_predictions)^2)
+ridge_mse
+```
+
+# Logistic
+```{r}
+library(glmnet)
+
+train_set$Y <- as.factor(train_set$Y)
+
+# Create a matrix of predictors
+x_train <- model.matrix(Y ~ . - 1, data = train_set) # -1 to exclude intercept
+y_train <- train_set$Y
+
+# Fit the logistic regression model with cross-validation
+cv_logistic_model <- cv.glmnet(x_train, y_train, family = "binomial", alpha = 0)
+
+# Cross-validation plot
+plot(cv_logistic_model)
+```
+
+```{r}
+# Predict on the validation set
+x_validation <- model.matrix(Y ~ . - 1, data = validation_set) # -1 to exclude intercept
+logistic_predictions <- predict(cv_logistic_model, newx = x_validation, type = "response", s = "lambda.min")
+```
+
+```{r}
+# MSE for logistic 
+logistic_mse <- mean((validation_set$Y - logistic_predictions)^2)
+logistic_mse
+```
+
+
