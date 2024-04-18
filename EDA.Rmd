@@ -145,6 +145,8 @@ summary(lm(Area ~ EquivDiameter, data = train))
 ```
 Area is super correlated with ConvexArea and EquivDiameter
 
+*Solidity and roundness: NOT related
+
 # Correlation Matrix
 
 ```{r}
