@@ -4,17 +4,22 @@ author: "Elizabeth Ho"
 output: pdf_document
 ---
 
-# Load in data, basic exploration of data
+# Load in data
 ```{r}
 # Load in the data
 train <- read.csv("data/train_data.csv")
+```
+
+## Check the variable types
+```{r}
+str(train)
 ```
 
 ```{r}
 full_model <- lm(Y ~ ., data = train)
 summary(full_model)
 ```
-# Plots
+# Visualizing data distributions to understand the characteristics of variables
 (Adding in after observing multicollinearity)
 
 ## Area vs. perimeter scatterplot
@@ -119,120 +124,21 @@ Area, Perimeter, MajorAxisLength, MinorAxisLength, AspectRation, Eccentricity, C
 
 Extent and ShapeFactor4 have VIF values around 1 and 220 respectively. It seems that Extent has little to no collinearity with other variables, while ShapeFactor4 is moderately correlated with others.
 
-# Splitting data into training and validation
-
+# Outliers - Detection and Handling
 ```{r}
-# Splitting the data into training and validation sets
-set.seed(1234)
-index <- sample(1:nrow(train), round(0.8 * nrow(train)))
-train_set <- train[index, ]
-validation_set <- train[-index, ]
+
 ```
 
-# LASSO
-Do we need to standardize features?
-```{r, eval=FALSE}
-# NOTE: I did NOT standardize features; here is the code if we wanted to do so
-# Standardize the features
-standardized_train <- scale(train)
-standardized_train <- as.data.frame(standardized_train)
-
-# Fit the Lasso model on the standardized data
-lasso_model_standardized <- cv.glmnet(as.matrix(standardized_train), train$Y, alpha = 1)
-```
-
-Proceeding without standardizing:
-```{r, warning=FALSE, message=FALSE}
-# Use Lasso?
-library(glmnet)
-x_train <- model.matrix(Y ~ . - 1, data = train_set) # -1 to exclude intercept
-y_train <- train_set$Y
-lasso_model <- cv.glmnet(x_train, y_train, alpha = 1)
-plot(lasso_model)
-
-# Predictions for the validation set
-x_validation <- model.matrix(Y ~ . - 1, data = validation_set)
-predictions <- predict(lasso_model, s = "lambda.min", newx = x_validation)
-```
-
+# Missing data
 ```{r}
-# Extract coefficients of the model at lambda.min
-lasso_coefficients <- coef(lasso_model, s = "lambda.min")
 
-# Non-zero coefficients
-print(round(lasso_coefficients[lasso_coefficients != 0], 6))
 ```
 
-## Coefficients with variable names
-```{r}
-lasso_coefficients <- coef(lasso_model, s = "lambda.min")
-variable_names <- colnames(x_train)
-coef_w_names <- setNames(lasso_coefficients[-1], variable_names)
-print(round(coef_w_names[coef_w_names != 0], 6))
-```
+# Feature Engineering and Selection:
+Based on your EDA, decide which variables to keep, drop, or transform.
+Create new features that might be useful for your model, based on your understanding of the dataset and the relationships among variables.
+Perform any necessary transformations (e.g., scaling, normalization) that might help your modeling process.
 
-Less significant variables:
-- Area
-- Perimeter
-- Major Axis Length
-- Convex Area
-- EquivDiameter (?)
-
-More significant variables:
-- Shape factor 1
-- Shape factor 2
-- Shape factor 3
-- Shape factor 4
-
-Everything else TBD
-
-```{r}
-# Predict using the validation set
-predictions <- predict(lasso_model, s = "lambda.min", newx = x_validation)
-
-# MSE on the validation set
-mse <- mean((validation_set$Y - predictions)^2)
-mse
-```
-
-# Ridge
-
-```{r}
-ridge_model <- cv.glmnet(x_train, y_train, alpha = 0)
-
-# CV curve
-plot(ridge_model)
-```
-
-```{r}
-# Predictions for the validation set
-ridge_predictions <- predict(ridge_model, s = "lambda.min", newx = x_validation)
-
-# Extract coefficients of the Ridge model at lambda.min
-ridge_coefficients <- coef(ridge_model, s = "lambda.min")
-
-# Non-zero coefficients
-print(round(ridge_coefficients, 6))
-```
-
-```{r}
-# MSE for the validation set 
-ridge_mse <- mean((validation_set$Y - ridge_predictions)^2)
-ridge_mse
-```
-
-# Conclusions based on EDA
-### 1. Variables to Consider Including
-   - **ShapeFactor1, ShapeFactor2, ShapeFactor3, ShapeFactor4**: These variables showed significant non-zero coefficients in the LASSO regression, so they're likely to be important predictors.
-   - **Extent**: This variable demonstrated a low Variance Inflation Factor (VIF)
-    - This suggests minimal collinearity with other variables.
-   - **EquivDiameter**: This variable has a high VIF and showed a significant effect in the regression models. If multicollinearity concerns are addressed, it might be useful to include (?)
-   - **Solidity, roundness, Compactness**: These showed significant coefficients in the predictive models.
-
-### 2. Variables to Potentially Exclude
-   - **Area, Perimeter, MajorAxisLength, MinorAxisLength**: These variables exhibit extremely high multicollinearity (very high VIF values) and were not consistently significant across the models.
-    - Indications: Including one of these variables might be sufficient if needed, since they are highly correlated with each other.
-   - **AspectRation, Eccentricity**: High correlation with each other and other shape descriptors, potentially leading to issues of multicollinearity.
    
 # MSE values really small - checking to see if anything's wrong
 ```{r}
