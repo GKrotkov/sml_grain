@@ -113,27 +113,6 @@ summary(major_minor)
 ```
 Seems pretty strong
 
-## PCA Biplot
-```{r}
-# library(ggplot2)
-# library(GGally)
-# 
-# # Run PCA on the data
-# pca_result <- prcomp(train[,sapply(train, is.numeric)], scale. = TRUE)
-# 
-# # Create biplot
-# ggbiplot(pca_result,
-#          obs.scale = 1,
-#          var.scale = 1,
-#          groups = train$Y,
-#          ellipse = TRUE,
-#          circle = TRUE) +
-#   scale_color_discrete(name = '') +
-#   theme_minimal() +
-#   labs(title = "PCA Biplot with Observations Colored by 'Y'")
-```
-
-
 ```{r}
 correlation_matrix <- cor(train[, -which(names(train) == "Y")])
 correlation_matrix
