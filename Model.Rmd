@@ -1,11 +1,14 @@
 ---
-title: "Feature Engineering and Selection"
+title: "Feature Selection"
 output: pdf_document
 ---
 # Feature Engineering and Selection:
 Based on your EDA, decide which variables to keep, drop, or transform.
 Create new features that might be useful for your model, based on your understanding of the dataset and the relationships among variables.
 Perform any necessary transformations (e.g., scaling, normalization) that might help your modeling process.
+NOTE: feature engineering better for predictions.
+
+We probably do NOT need to do feature selection OR engineering...
 
 ## NOTES
 - Only use area, not perimeter, axis length, etc.
@@ -108,6 +111,17 @@ predictions <- predict(lasso_model, s = "lambda.min", newx = x_validation)
 mse <- mean((validation_set$Y - predictions)^2)
 mse
 ```
+```{r}
+# Accuracy
+classes <- ifelse(predictions > 0.5, 1, 0)
+
+real.classes <- validation_set$Y
+correct.predictions <- sum(classes == real.classes)
+total.predictions <- length(classes)
+accuracy.percentage <- (correct.predictions / total.predictions) * 100
+accuracy.percentage
+```
+
 
 # Ridge
 ```{r}
@@ -132,6 +146,16 @@ print(round(ridge_coefficients, 6))
 # MSE for the validation set 
 ridge_mse <- mean((validation_set$Y - ridge_predictions)^2)
 ridge_mse
+```
+
+```{r}
+predicted_classes_ridge <- ifelse(ridge_predictions > 0.5, 1, 0)
+
+actual_classes_ridge <- validation_set$Y
+correct_predictions_ridge <- sum(predicted_classes_ridge == actual_classes_ridge)
+total_predictions_ridge <- length(predicted_classes_ridge)
+accuracy_percentage_ridge <- (correct_predictions_ridge / total_predictions_ridge) * 100
+accuracy_percentage_ridge
 ```
 
 # Logistic
@@ -172,7 +196,7 @@ actual <- as.factor(validation_set$Y)
 accuracy_pct <- sum(bin == actual) / length(actual)
 accuracy_pct
 ```
-
+Okay so a plan is to NOT do ANY feature selection at all.
 
 # LOGISTIC AFTER VARIABLE SELECTION
 ## Make a new Data Frame with variables to include
