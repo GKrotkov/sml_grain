@@ -24,6 +24,7 @@ summary(full_model)
 
 # Single variables
 ```{r}
+library(ggplot2)
 # Area
 ggplot(train, aes(x = Area)) +
     geom_histogram(bins = 25)
@@ -198,14 +199,4 @@ ggplot(train, aes(x = ShapeFactor4)) +
     theme_minimal()
 ```
 *NOTE there are no missing data*
-
-   
-# MSE values really small - checking to see if anything's wrong
-```{r}
-predicted_classes <- ifelse(predictions > 0.5, 1, 0) 
-
-library(caret)
-conf_matrix <- confusionMatrix(factor(predicted_classes), factor(validation_set$Y))
-print(conf_matrix)
-```
 

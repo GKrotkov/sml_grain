@@ -10,12 +10,18 @@ Perform any necessary transformations (e.g., scaling, normalization) that might 
 ## NOTES
 - Only use area, not perimeter, axis length, etc.
 
+# Load in data
+```{r}
+# Load in the data
+train <- read.csv("data/train_data.csv")
+```
+
 ```{r}
 # Check for multicollinearity
-library(car)
-vif_values <- vif(full_model)
-rounded_vif <- round(vif_values, 4)
-rounded_vif
+# library(car)
+# vif_values <- vif(full_model)
+# rounded_vif <- round(vif_values, 4)
+# rounded_vif
 ```
 
 Area, Perimeter, MajorAxisLength, MinorAxisLength, AspectRation, Eccentricity, ConvexArea, EquivDiameter, Compactness, ShapeFactor1, ShapeFactor2, and ShapeFactor3 all have very high VIF values, indicating extremely high multicollinearity.
@@ -173,7 +179,7 @@ accuracy_pct
 ```{r}
 # Variables we want to keep
 keep <- c("ShapeFactor1", "ShapeFactor2", "ShapeFactor3", "ShapeFactor4", 
-                       "Extent", "EquivDiameter", "Solidity", "roundness", "Compactness")
+                       "Extent", "Area", "Solidity", "roundness", "Compactness")
 
 train_filtered <- train[, keep]
 add_Y <- c(keep, "Y")
