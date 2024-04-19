@@ -157,4 +157,54 @@ logistic_mse <- mean((validation_set$Y - logistic_predictions)^2)
 logistic_mse
 ```
 
+# LOGISTIC AFTER VARIABLE SELECTION
+## Make a new Data Frame with variables to include
+```{r}
+# Variables we want to keep
+keep <- c("ShapeFactor1", "ShapeFactor2", "ShapeFactor3", "ShapeFactor4", 
+                       "Extent", "EquivDiameter", "Solidity", "roundness", "Compactness")
+
+train_filtered <- train[, keep]
+add_Y <- c(keep, "Y")
+# Add response variable
+train_final <- train[, add_Y]
+```
+
+```{r}
+library(glmnet)
+
+train_final$Y <- as.factor(train_final$Y)
+
+# Create a matrix of predictors
+x_train_final <- model.matrix(Y ~ . - 1, data = train_final) # -1 to exclude intercept
+y_train_final <- train_final$Y
+
+# Fit the logistic regression model with cross-validation
+cv_logistic_model_final <- cv.glmnet(x_train_final, y_train_final, family = "binomial", alpha = 0)
+
+# Cross-validation plot
+plot(cv_logistic_model_final)
+```
+
+```{r}
+# Predict on the validation set
+x_validation_final <- model.matrix(Y ~ . - 1, data = validation_set) # -1 to exclude intercept
+logistic_predictions_final <- predict(cv_logistic_model_final, newx = x_validation_final, type = "response", s = "lambda.min")
+
+# MSE for logistic 
+logistic_mse_final <- mean((validation_set$Y - logistic_predictions_final)^2)
+logistic_mse_final
+```
+
+```{r}
+# Calculate log loss for logistic regression
+logistic_log_loss <- -mean(log(ifelse(validation_set$Y == 1, logistic_predictions, 1 - logistic_predictions)))
+print(logistic_log_loss)
+
+# Alternatively, calculate accuracy
+binary_predictions <- ifelse(logistic_predictions > 0.5, 1, 0)
+binary_predictions <- as.factor(binary_predictions)
+accuracy <- mean(binary_predictions == validation_set$Y)
+print(accuracy)
+```
 
