@@ -1,0 +1,117 @@
+---
+title: "eda"
+author: "Gabriel Krotkov"
+date: "2024-04-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message = FALSE}
+library(tidyverse)
+library(randomForest)
+library(kernlab)
+library(MASS)
+library(e1071)
+```
+
+```{r data loading, message = FALSE}
+raw <- read_csv("../data/train_data.csv")
+data <- raw
+# cast to a factor
+data$Y <- factor(data$Y)
+
+# 80/20 train/test split
+train_idx <- sample(1:nrow(data), size = floor(0.8 * nrow(data)), 
+                    replace = FALSE)
+test <- data[-train_idx, ]
+train <- data[train_idx, ]
+
+validation <- read_csv("../data/test_data_x.csv")
+
+# include first principal component for both train and test
+pca <- prcomp(train[, which(colnames(train) != "Y")], 
+              center = TRUE, scale = TRUE)
+train$pc1 <- pca$x[, 1]
+
+pca <- prcomp(test[, which(colnames(test) != "Y")], 
+              center = TRUE, scale = TRUE)
+test$pc1 <- pca$x[, 1]
+
+lda_fit <- lda(Y ~ ., train)
+```
+
+```{r SVM first try with PCs}
+svm_rbf <- svm(Y ~ ., data = train, kernel = "radial")
+preds <- predict(svm_rbf, newdata = test)
+cv_error <- 1 - (sum(test$Y == preds) / nrow(test))
+```
+
+```{r random forest first try}
+rf <- randomForest(Y ~ ., data = train)
+
+preds <- predict(rf, newdata = test)
+cv_error <- 1 - (sum(test$Y == preds) / nrow(test))
+```
+
+Ideas: 
+- PCA to see if there's grouping
+
+```{r PCA}
+pca <- prcomp(raw[, which(colnames(raw) != "Y")], center = TRUE, scale = TRUE)
+
+viz <- data.frame(pca$x)
+viz$label <- raw$Y
+
+plot(pca)
+
+ggplot(viz, aes(x = PC1, y = PC2, color = label)) + 
+    geom_point(alpha = 0.8) + 
+    labs(title = "Principal Components 1 and 2", 
+         subtitle = "PC1 appears to dominantly sort the data")
+```
+
+Let's try a random forest including the first principal component as a feature.
+
+```{r RF with first PC}
+pca <- prcomp(train[, which(colnames(train) != "Y")], 
+              center = TRUE, scale = TRUE)
+train <- cbind(train, pc1 = pca$x[, 1])
+
+rf <- randomForest(Y ~ . - ShapeFactor3 - Eccentricity - AspectRation - Compactness, data = train)
+
+pca <- prcomp(test[, which(colnames(test) != "Y")], center = TRUE, scale = TRUE)
+test <- cbind(test, pc1 = pca$x[, 1])
+preds <- predict(rf, newdata = test)
+cv_error <- 1 - (sum(test$Y == preds) / nrow(test))
+
+varImpPlot(rf)
+```
+
+Dead ends: XGBoost, Hierarchical Clustering, Spectral Clustering
+
+Maybe Hierarchical clustering?
+
+```{r}
+hclust_tree <- hclust(dist(train[, -17]), method = "average")
+
+cut_5 <- cutree(hclust_tree, 10)
+
+plot(hclust_tree, main = "Cluster Dendrogram", 
+     sub = NA, xlab = "Using Average Linkage")
+
+train$clust <- cut_5
+
+rf <- randomForest(Y ~ ., data = train)
+
+hclust_tree <- hclust(dist(test[, -17]), method = "average")
+
+cut_5 <- cutree(hclust_tree, 10)
+test$clust <- cut_5
+
+preds <- predict(rf, newdata = test)
+cv_error <- 1 - (sum(test$Y == preds) / nrow(test))
+```
+

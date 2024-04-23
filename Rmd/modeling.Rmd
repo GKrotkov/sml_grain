@@ -1,0 +1,165 @@
+---
+title: "modeling"
+author: "Gabriel Krotkov"
+date: "2024-04-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message = FALSE}
+library(tidyverse)
+library(randomForest)
+library(kernlab)
+library(MASS)
+library(e1071)
+library(gbm)
+library(caret)
+```
+
+```{r data loading, message = FALSE}
+raw <- read_csv("../data/train_data.csv")
+
+# center and scale all variables
+data <- apply(raw[, which(colnames(raw) != "Y")], 2, log)
+data <- data.frame(cbind(data, Y = raw$Y))
+
+# cast to a factor
+data$Y <- factor(data$Y)
+
+# 80/20 train/test split
+parts = createDataPartition(data$Y, p = 0.8, list = FALSE)
+train = data[parts, ]
+test = data[-parts, ]
+
+validation <- read_csv("../data/test_data_x.csv")
+```
+
+```{r fitting after hyperparam tuning}
+team.name <- "Jing's Favorite Students"
+# mtry = 5, ntree = 1000
+rf <- randomForest(Y ~ ., data = train, ntree = 10000)
+preds <- predict(rf, newdata = test)
+test.acc <- 1 - (sum(preds == test$Y) / nrow(test))
+rf <- randomForest(Y ~ ., data = data, ntree = 10000)
+y.guesses <- predict(rf, newdata = validation)
+
+save(list=c("y.guesses", "test.acc", "team.name"),
+     file="../data/jings_favorite_students.RData")
+```
+
+
+```{r random forest prove that dropping area improves the model}
+reps <- 10
+cv_errors <- rep(0, reps)
+cv_errors_dropped <- rep(0, reps)
+
+for (i in 1:reps){
+    rf <- randomForest(Y ~ ., data = train)
+    rf_dropped <- randomForest(Y ~ . - Area, data = train)
+    preds <- predict(rf, newdata = test)
+    preds_dropped <- predict(rf_dropped, newdata = test)
+    cv_errors[i] <- 1 - (sum(test$Y == preds) / nrow(test))
+    cv_errors_dropped[i] <- 1 - (sum(test$Y == preds_dropped) / nrow(test))
+}
+
+cat("Mean difference (positive means dropping helped):",
+    mean(cv_errors - cv_errors_dropped), "\n")
+```
+
+```{r testing dropping PC1, include = FALSE}
+# include first principal component for both train and test
+pca <- prcomp(train[, which(colnames(train) != "Y")], 
+              center = TRUE, scale = TRUE)
+train$pc1 <- pca$x[, 1]
+
+pca <- prcomp(test[, which(colnames(test) != "Y")], 
+              center = TRUE, scale = TRUE)
+
+test$pc1 <- pca$x[, 1]
+reps <- 100
+cv_errors <- rep(0, reps)
+cv_errors_dropped <- rep(0, reps)
+
+for (i in 1:reps){
+    rf <- randomForest(Y ~ ., data = train)
+    rf_dropped <- randomForest(Y ~ . - pc1, data = train)
+    preds <- predict(rf, newdata = test)
+    preds_dropped <- predict(rf_dropped, newdata = test)
+    cv_errors[i] <- 1 - (sum(test$Y == preds) / nrow(test))
+    cv_errors_dropped[i] <- 1 - (sum(test$Y == preds_dropped) / nrow(test))
+}
+
+cat("Mean difference (positive means dropping helped):",
+    mean(cv_errors - cv_errors_dropped), "\n")
+```
+
+Looks like neither including PC scores nor dropping Area consistently improves performance.
+
+```{r hyperparameter tuning}
+ntrees <- seq(100, 1000, by = 50)
+mtrys <- 5:11
+reps <- 10
+
+ntree_errors <- rep(0, length(ntrees))
+names(ntree_errors) <- ntrees
+
+mtry_errors <- rep(0, length(mtrys))
+names(mtry_errors) <- mtrys
+
+for (i in 1:length(ntrees)){
+    tmp <- rep(0, reps)
+    for (j in 1:reps){
+        rf <- randomForest(Y ~ ., data = train, ntree = ntrees[i])
+        preds <- predict(rf, newdata = test)
+        tmp[j] <- 1 - (sum(test$Y == preds) / nrow(test))
+    }
+    ntree_errors[i] <- mean(tmp)
+}
+
+for (i in 1:length(mtrys)){
+    tmp <- rep(0, reps)
+    for (j in 1:reps){
+        rf <- randomForest(Y ~ ., data = train, mtry = mtrys[i], 
+                           ntree = 1000)
+        preds <- predict(rf, newdata = test)
+        tmp[j] <- 1 - (sum(test$Y == preds) / nrow(test))
+    }
+    mtry_errors[i] <- mean(tmp)
+}
+
+# 5 appears to be the best selection for
+which.min(mtry_errors)
+```
+
+```{r}
+reps <- 10
+cv_error <- rep(0, reps)
+for (i in 1:reps){
+    rf <- randomForest(Y ~ ., data = train)
+    preds <- predict(rf, newdata = test)
+    cv_error[i] <- 1 - (sum(test$Y == preds) / nrow(test))
+}
+```
+
+```{r boosting}
+# Train the GBM model
+gbm_model <- gbm(Y ~ ., 
+                 data = train, distribution = "adaboost", 
+                 shrinkage = 0.001, n.minobsinnode = 10, n.trees = 1000)
+probs <- predict(gbm_model, newdata = test, 
+                 n.trees = 100, 
+                 type = "response")
+cutoff <- quantile(probs, 2245 / nrow(train))
+preds <- ifelse(probs >= cutoff, 1, 0)
+cv_error <- 1 - (sum(test$Y == preds) / nrow(test))
+
+cv_error
+```
+
+```{r}
+km <- kmeans(train$Y, 2, nstart = 10)
+```
+
