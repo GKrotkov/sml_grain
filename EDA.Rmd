@@ -140,6 +140,12 @@ ggplot(train, aes(x = EquivDiameter, y = Area)) +
   labs(title = "Area vs. EquivDiameter",
        x = "EquivDiameter",
        y = "Area")
+ggplot(train, aes(x = EquivDiameter, y = ConvexArea)) +
+  geom_point(alpha = 0.6, col = "cadetblue") +
+  theme_minimal() +
+  labs(title = "Convexarea vs. EquivDiameter",
+       x = "EquivDiameter",
+       y = "Area")
 ```
 ```{r}
 summary(lm(Area ~ EquivDiameter, data = train))
