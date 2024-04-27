@@ -412,4 +412,49 @@ team_name <- "YourTeamName"  # Replace with your team name
 # Save to RData file
 save(y_guesses, test_acc, team_name, file = "predictions.RData")
 ```
+# DEBUG
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message = FALSE}
+library(tidyverse)
+library(randomForest)
+library(kernlab)
+library(MASS)
+library(e1071)
+library(gbm)
+library(caret)
+```
+
+```{r data loading, message = FALSE}
+raw <- read_csv("/Users/Elizabeth/Desktop/Spring 2024/Stat ML/ML Final/data/train_data.csv")
+
+# # center and scale all variables
+# data <- apply(raw[, which(colnames(raw) != "Y")], 2, log)
+# data <- data.frame(cbind(data, Y = raw$Y))
+
+# cast to a factor
+raw$Y <- factor(raw$Y)
+
+# 80/20 train/test split
+parts = createDataPartition(raw$Y, p = 0.8, list = FALSE)
+train = raw[parts, ]
+test = raw[-parts, ]
+
+validation <- read_csv("/Users/Elizabeth/Desktop/Spring 2024/Stat ML/ML Final/data/test_data_x.csv")
+```
+
+```{r fitting after hyperparam tuning}
+team.name <- "Jing's Favorite Students"
+# mtry = 5, ntree = 1000
+rf <- randomForest(Y ~ ., data = train, ntree = 10000)
+preds <- predict(rf, newdata = test)
+test.acc <- 1 - (sum(preds == test$Y) / nrow(test))
+y.guesses <- predict(rf, newdata = validation)
+
+save(list=c("y.guesses", "test.acc", "team.name"),
+     file="/Users/Elizabeth/Desktop/Spring 2024/Stat ML/jings_favorite_students.RData")
+```
 
