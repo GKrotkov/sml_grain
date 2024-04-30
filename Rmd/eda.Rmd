@@ -65,12 +65,13 @@ pca <- prcomp(raw[, which(colnames(raw) != "Y")], center = TRUE, scale = TRUE)
 viz <- data.frame(pca$x)
 viz$label <- raw$Y
 
-plot(pca)
+plot(pca, main = "Scree Plot", xlab = "PCs")
 
-ggplot(viz, aes(x = PC1, y = PC2, color = label)) + 
+ggplot(viz, aes(x = PC1, y = PC2, color = factor(label))) + 
     geom_point(alpha = 0.8) + 
     labs(title = "Principal Components 1 and 2", 
-         subtitle = "PC1 appears to dominantly sort the data")
+         subtitle = "PC1 appears to dominantly sort the data", 
+         color = "Label")
 ```
 
 Let's try a random forest including the first principal component as a feature.
