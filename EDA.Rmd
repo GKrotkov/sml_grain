@@ -116,6 +116,8 @@ Seems relatively strong
 
 ## Area and MajorAxisLength, MinorAxisLength, ConvexArea, EquivDiameter
 ```{r}
+library(ggplot2)
+
 ggplot(train, aes(x = MajorAxisLength, y = Area)) +
   geom_point(alpha = 0.6, col = "cadetblue") +
   theme_minimal() +
@@ -138,6 +140,12 @@ ggplot(train, aes(x = EquivDiameter, y = Area)) +
   geom_point(alpha = 0.6, col = "cadetblue") +
   theme_minimal() +
   labs(title = "Area vs. EquivDiameter",
+       x = "EquivDiameter",
+       y = "Area")
+ggplot(train, aes(x = EquivDiameter, y = ConvexArea)) +
+  geom_point(alpha = 0.6, col = "cadetblue") +
+  theme_minimal() +
+  labs(title = "Convexarea vs. EquivDiameter",
        x = "EquivDiameter",
        y = "Area")
 ```

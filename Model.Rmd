@@ -165,7 +165,7 @@ library(glmnet)
 train_set$Y <- as.factor(train_set$Y)
 
 # Create a matrix of predictors
-x_train <- model.matrix(Y ~ . - 1, data = train_set) # -1 to exclude intercept
+x_train <- model.matrix(Y ~ . - 1, data = train_set)
 y_train <- train_set$Y
 
 # Fit the logistic regression model with cross-validation
@@ -254,3 +254,207 @@ accuracy
 ```
 
 Variable selection made the MSE worse?
+
+# LOGISTIC REDO
+```{r}
+train <- read.csv("data/train_data.csv")
+train$Y <- factor(train$Y, levels = c(0, 1))
+
+# Splitting the data into training and validation sets
+set.seed(1234)
+index <- sample(1:nrow(train), round(0.8 * nrow(train)))
+train_set <- train[index, ]
+validation <- train[-index, ]
+
+logistic_model <- glm(Y ~ ., family = "binomial", data = train_set)
+predictions <- predict(logistic_model, validation, type = "response")
+```
+# REDO 2
+```{r}
+library(glmnet)
+
+train <- read.csv("data/train_data.csv")
+train$Y <- factor(train$Y, levels = c(0, 1))
+
+# Splitting the data into training and validation sets
+set.seed(1234)
+index <- sample(1:nrow(train), round(0.8 * nrow(train)))
+train_set <- train[index, ]
+validation <- train[-index, ]
+
+
+# Create model matrices for logistic regression with Lasso
+x_train <- model.matrix(Y ~ . - 1, data = train_set)  # Exclude the intercept
+y_train <- train_set$Y
+
+# Fit Lasso logistic regression (alpha = 1 for Lasso)
+cv_lasso_model <- cv.glmnet(x_train, y_train, family = "binomial", alpha = 1)  # Cross-validated Lasso
+
+# Plot the cross-validation results to see how lambda affects the model
+plot(cv_lasso_model)
+```
+```{r}
+# Choose the optimal lambda (use either lambda.min or lambda.1se)
+optimal_lambda <- cv_lasso_model$lambda.min  # or cv_lasso_model$lambda.1se
+
+# Fit the final logistic regression model with the optimal lambda
+final_lasso_model <- glmnet(x_train, y_train, family = "binomial", alpha = 1, lambda = optimal_lambda)
+
+# Create a model matrix for the validation set
+x_validation <- model.matrix(Y ~ . - 1, data = validation)
+y_validation <- validation$Y
+
+# Predict probabilities on the validation set
+predicted_probabilities <- predict(final_lasso_model, newx = x_validation, type = "response")
+
+# Convert probabilities to binary class predictions (threshold = 0.5)
+predicted_classes <- ifelse(predicted_probabilities >= 0.5, 1, 0)
+
+# Calculate accuracy
+correct_predictions <- sum(predicted_classes == as.numeric(as.character(y_validation)))
+total_predictions <- length(y_validation)
+accuracy <- (correct_predictions / total_predictions) * 100
+
+cat("Accuracy on validation set:", accuracy, "%\n")
+```
+
+
+## failed
+```{r}
+# Get coefficients at the optimal lambda
+lasso_coefficients <- coef(cv_lasso_model, s = "lambda.min")
+print(lasso_coefficients)  # Coefficients at optimal lambda
+```
+
+```{r}
+# Extract the coefficients at the optimal lambda
+lasso_coefficients <- coef(cv_lasso_model, s = "lambda.min")
+
+# Convert to a matrix to facilitate extraction
+coef_matrix <- as.matrix(lasso_coefficients)
+
+# Extract the row names where coefficients are non-zero
+important_features <- rownames(coef_matrix)[coef_matrix != 0]
+
+# Display the non-zero coefficients and their associated row names
+print(important_features)
+```
+
+```{r}
+# Create formula using the important features selected by Lasso
+formula <- as.formula(paste("Y ~", paste(important_features[-1], collapse = " + ")))
+
+# Fit a logistic regression model using the selected features
+logistic_model <- glm(formula, family = "binomial", data = train_set)
+
+# Predict on the validation set
+x_validation <- model.matrix(formula, data = validation)[, -1]
+predictions <- predict(logistic_model, newx = x_validation, type = "response")
+```
+
+```{r}
+# Convert probabilities to binary predictions using a threshold
+binary_predictions <- ifelse(predictions >= 0.5, 1, 0)
+
+# Calculate accuracy
+accuracy <- mean(binary_predictions == validation$Y)
+print(paste("Accuracy:", accuracy))
+```
+
+```{r}
+# Use confusion matrix for detailed evaluation
+library(caret)
+confusion_matrix <- confusionMatrix(as.factor(binary_predictions), validation$Y)
+print(confusion_matrix)
+```
+# let's try SVM
+```{r}
+# Required libraries
+library(e1071)  # For SVM
+library(caret)  # For data splitting and model tuning
+
+# Load your dataset
+train <- read.csv("data/train_data.csv")
+
+# Splitting the data into training and validation sets
+set.seed(1234)  # For reproducibility
+index <- sample(1:nrow(train), round(0.8 * nrow(train)))
+train_set <- train[index, ]
+validation_set <- train[-index, ]
+
+# Feature scaling
+# SVM models benefit from feature scaling to ensure each feature contributes equally to the prediction
+scaler <- preProcess(train_set[, -ncol(train_set)], method = c("center", "scale"))
+train_scaled <- predict(scaler, train_set)
+validation_scaled <- predict(scaler, validation_set)
+
+# SVM with radial basis function (RBF) kernel
+# You can also try other kernels like linear, polynomial, or sigmoid
+svm_model <- svm(Y ~ ., data = train_scaled, kernel = "radial")
+
+# Predictions on the validation set
+svm_predictions <- predict(svm_model, validation_scaled)
+
+# Converting probabilities to binary outcomes
+threshold <- 0.5  # This is the default threshold, you can adjust it
+binary_predictions <- ifelse(svm_predictions >= threshold, 1, 0)
+
+# Calculate accuracy with binary outcomes
+accuracy <- sum(binary_predictions == validation_scaled$Y) / nrow(validation_scaled)
+
+# Output for submission
+y_guesses <- predict(svm_model, validation_scaled[, -ncol(validation_scaled)])  # Predictions on test data
+test_acc <- accuracy
+team_name <- "YourTeamName"  # Replace with your team name
+```
+
+```{r}
+# Save to RData file
+save(y_guesses, test_acc, team_name, file = "predictions.RData")
+```
+# DEBUG
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message = FALSE}
+library(tidyverse)
+library(randomForest)
+library(kernlab)
+library(MASS)
+library(e1071)
+library(gbm)
+library(caret)
+```
+
+```{r data loading, message = FALSE}
+raw <- read_csv("/Users/Elizabeth/Desktop/Spring 2024/Stat ML/ML Final/data/train_data.csv")
+
+# # center and scale all variables
+# data <- apply(raw[, which(colnames(raw) != "Y")], 2, log)
+# data <- data.frame(cbind(data, Y = raw$Y))
+
+# cast to a factor
+raw$Y <- factor(raw$Y)
+
+# 80/20 train/test split
+parts = createDataPartition(raw$Y, p = 0.8, list = FALSE)
+train = raw[parts, ]
+test = raw[-parts, ]
+
+validation <- read_csv("/Users/Elizabeth/Desktop/Spring 2024/Stat ML/ML Final/data/test_data_x.csv")
+```
+
+```{r fitting after hyperparam tuning}
+team.name <- "Jing's Favorite Students"
+# mtry = 5, ntree = 1000
+rf <- randomForest(Y ~ ., data = train, ntree = 10000)
+preds <- predict(rf, newdata = test)
+test.acc <- 1 - (sum(preds == test$Y) / nrow(test))
+y.guesses <- predict(rf, newdata = validation)
+
+save(list=c("y.guesses", "test.acc", "team.name"),
+     file="/Users/Elizabeth/Desktop/Spring 2024/Stat ML/jings_favorite_students.RData")
+```
+
